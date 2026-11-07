@@ -1,0 +1,8 @@
+# Używane tylko na hostingu, na którym nie da się ustawić katalogu public/ jako document root.
+# Przekierowuje wszystkie żądania do public/ i blokuje dostęp do plików aplikacji (.env, vendor, storage...).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(\.env|\.git|composer\.(json|lock)|artisan|vendor|storage|database|app|config|routes|tests|bootstrap|resources)(/|$) - [F,L]
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

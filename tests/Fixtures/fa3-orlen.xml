@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/" xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/">
+    <Naglowek>
+        <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+        <WariantFormularza>3</WariantFormularza>
+        <DataWytworzeniaFa>2026-11-03T10:15:00Z</DataWytworzeniaFa>
+        <SystemInfo>POS</SystemInfo>
+    </Naglowek>
+    <Podmiot1>
+        <DaneIdentyfikacyjne>
+            <NIP>7740001454</NIP>
+            <Nazwa>ORLEN Spółka Akcyjna</Nazwa>
+        </DaneIdentyfikacyjne>
+        <Adres>
+            <KodKraju>PL</KodKraju>
+            <AdresL1>ul. Chemików 7</AdresL1>
+            <AdresL2>09-411 Płock</AdresL2>
+        </Adres>
+    </Podmiot1>
+    <Podmiot2>
+        <DaneIdentyfikacyjne>
+            <NIP>8990001122</NIP>
+            <Nazwa>Moja Firma Jan Nowak</Nazwa>
+        </DaneIdentyfikacyjne>
+        <JST>2</JST>
+        <GV>2</GV>
+    </Podmiot2>
+    <Fa>
+        <KodWaluty>PLN</KodWaluty>
+        <P_1>2026-11-03</P_1>
+        <P_2>F/123/11/2026/S4567</P_2>
+        <P_6>2026-11-03</P_6>
+        <P_13_1>235.78</P_13_1>
+        <P_14_1>54.23</P_14_1>
+        <P_15>290.01</P_15>
+        <Adnotacje>
+            <P_16>2</P_16><P_17>2</P_17><P_18>2</P_18><P_18A>2</P_18A>
+            <Zwolnienie><P_19N>1</P_19N></Zwolnienie>
+            <NoweSrodkiTransportu><P_22N>1</P_22N></NoweSrodkiTransportu>
+            <P_23>2</P_23>
+            <PMarzy><P_PMarzyN>1</P_PMarzyN></PMarzy>
+        </Adnotacje>
+        <RodzajFaktury>VAT</RodzajFaktury>
+        <FaWiersz>
+            <NrWierszaFa>1</NrWierszaFa>
+            <P_7>Olej napędowy EFECTA DIESEL</P_7>
+            <P_8A>l</P_8A>
+            <P_8B>40.12</P_8B>
+            <P_9A>5.6098</P_9A>
+            <P_11>225.07</P_11>
+            <P_12>23</P_12>
+        </FaWiersz>
+        <FaWiersz>
+            <NrWierszaFa>2</NrWierszaFa>
+            <P_7>Kawa Stop Cafe duża</P_7>
+            <P_8A>szt</P_8A>
+            <P_8B>1</P_8B>
+            <P_9A>10.71</P_9A>
+            <P_11>10.71</P_11>
+            <P_12>23</P_12>
+        </FaWiersz>
+    </Fa>
+</Faktura>
