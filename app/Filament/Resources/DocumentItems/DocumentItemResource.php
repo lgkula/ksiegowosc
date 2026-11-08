@@ -49,19 +49,21 @@ class DocumentItemResource extends Resource
                 ->join('documents', 'documents.id', '=', 'document_items.document_id')
                 ->select('document_items.*'))
             ->defaultSort('documents.issue_date', 'desc')
+            // Nazwa pozycji wyświetlana jest jako druga linia wiersza na całą szerokość (CSS: .ks-items-table).
+            ->extraAttributes(['class' => 'ks-items-table'])
             ->columns([
                 TextColumn::make('document.issue_date')->label('Data')->date('d.m.Y')->sortable(query: fn (Builder $q, string $direction) => $q->orderBy('documents.issue_date', $direction)),
                 TextColumn::make('document.period')->label('Miesiąc')->toggleable(),
                 TextColumn::make('document.number')->label('Numer')->searchable()->toggleable(),
                 TextColumn::make('document.contractor.short_name')
                     ->label('Kontrahent')
-                    ->description(fn (DocumentItem $record) => $record->document->contractor?->group?->name)
+                    ->tooltip(fn (DocumentItem $record) => $record->document->contractor?->group?->name)
+                    ->width('16rem')
                     ->searchable(),
-                TextColumn::make('name')->label('Pozycja')->searchable()->wrap(),
-                TextColumn::make('qty')->label('Ilość')->numeric(2)->toggleable(),
-                TextColumn::make('net')->label('Netto')->money('PLN')->sortable()->summarize(Sum::make()->label('')->money('PLN')),
-                TextColumn::make('vat')->label('VAT')->money('PLN')->summarize(Sum::make()->label('')->money('PLN')),
-                TextColumn::make('gross')->label('Brutto')->money('PLN')->sortable()->summarize(Sum::make()->label('')->money('PLN')),
+                TextColumn::make('qty')->label('Ilość')->numeric(fn ($state) => fmod((float) $state, 1) == 0 ? 0 : 2)->alignEnd()->toggleable(),
+                TextColumn::make('net')->label('Netto')->money('PLN')->alignEnd()->sortable()->summarize(Sum::make()->label('')->money('PLN')),
+                TextColumn::make('vat')->label('VAT')->money('PLN')->alignEnd()->summarize(Sum::make()->label('')->money('PLN')),
+                TextColumn::make('gross')->label('Brutto')->money('PLN')->alignEnd()->sortable()->summarize(Sum::make()->label('')->money('PLN')),
                 SelectColumn::make('category_id')
                     ->label('Kategoria')
                     ->options(fn () => Category::orderBy('sort')->pluck('name', 'id'))
@@ -73,6 +75,7 @@ class DocumentItemResource extends Resource
                     ->badge()
                     ->color(fn (string $state) => $state === 'manual' ? 'info' : 'gray')
                     ->toggleable(),
+                TextColumn::make('name')->label('Pozycja')->searchable()->tooltip(fn (DocumentItem $record) => $record->name),
             ])
             ->filters([
                 PeriodFilter::make('document'),

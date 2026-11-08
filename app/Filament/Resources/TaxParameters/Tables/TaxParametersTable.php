@@ -15,9 +15,9 @@ class TaxParametersTable
             ->defaultSort('year', 'desc')
             ->columns([
                 TextColumn::make('year')->label('Rok')->sortable(),
-                TextColumn::make('pit_threshold')->label('Próg PIT')->money('PLN'),
-                TextColumn::make('zus_base')->label('Podstawa ZUS')->money('PLN'),
-                TextColumn::make('health_rate')->label('Stawka zdrowotnej')->suffix('%'),
+                TextColumn::make('pit_threshold')->label('Próg PIT')->money('PLN')->alignEnd(),
+                TextColumn::make('zus_base')->label('Podstawa ZUS')->money('PLN')->alignEnd(),
+                TextColumn::make('health_rate')->label('Stawka zdrowotnej')->alignEnd()->suffix('%'),
             ])
             ->recordActions([
                 ReplicateAction::make()

@@ -82,6 +82,13 @@ class KsefImporter
                 try {
                     $this->importInvoice($meta, $subjectType);
                     $result['imported']++;
+                } catch (KsefRateLimitException $e) {
+                    // Dalsze zapytania i tak zostałyby odrzucone – przerywamy, pobrane faktury zostaną pominięte przy kolejnej próbie.
+                    $minutes = max(1, (int) ceil($e->retryAfter / 60));
+                    throw new KsefRateLimitException(
+                        "KSeF ograniczył liczbę pobrań (limit zapytań). Pobrano {$result['imported']} faktur, pozostałe pobierz ponownie za ok. {$minutes} min – już zapisane zostaną pominięte.",
+                        $e->retryAfter,
+                    );
                 } catch (Throwable $e) {
                     $result['errors'][] = $meta['ksefNumber'].': '.$e->getMessage();
                 }

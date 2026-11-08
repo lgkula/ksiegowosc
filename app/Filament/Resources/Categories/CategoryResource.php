@@ -58,8 +58,8 @@ class CategoryResource extends Resource
                 TextColumn::make('group')->label('Grupa')->sortable(),
                 TextColumn::make('direction')->label('Kierunek')->badge(),
                 TextColumn::make('treatment')->label('Sposób ujęcia')->badge(),
-                TextColumn::make('pit_percent')->label('% PIT')->numeric(0)->suffix('%'),
-                TextColumn::make('vat_percent')->label('% VAT')->numeric(0)->suffix('%'),
+                TextColumn::make('pit_percent')->label('% PIT')->numeric(0)->alignEnd()->suffix('%'),
+                TextColumn::make('vat_percent')->label('% VAT')->numeric(0)->alignEnd()->suffix('%'),
                 TextColumn::make('rules_count')->label('Reguły')->counts('rules'),
             ])
             ->filters([

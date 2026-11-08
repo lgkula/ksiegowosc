@@ -5,10 +5,10 @@ namespace App\Services\Ksef;
 use App\Models\Setting;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 use phpseclib3\Crypt\PublicKeyLoader;
 use phpseclib3\Crypt\RSA;
 
@@ -64,11 +64,11 @@ class KsefClient
     /** @return array{0:string, 1:string} access token i data ważności */
     public function authenticateWithToken(): array
     {
-        $challenge = $this->check('pobranie wyzwania', $this->http()->post('/auth/challenge'))->json();
+        $challenge = $this->send('pobranie wyzwania', fn () => $this->http()->post('/auth/challenge'))->json();
 
         $encrypted = $this->encryptToken($this->token.'|'.$challenge['timestampMs']);
 
-        $init = $this->check('rozpoczęcie uwierzytelnienia', $this->http()->post('/auth/ksef-token', [
+        $init = $this->send('rozpoczęcie uwierzytelnienia', fn () => $this->http()->post('/auth/ksef-token', [
             'challenge' => $challenge['challenge'],
             'contextIdentifier' => ['type' => 'Nip', 'value' => $this->nip],
             'encryptedToken' => $encrypted,
@@ -77,7 +77,7 @@ class KsefClient
         $authToken = $init['authenticationToken']['token'];
         $this->waitForAuthentication($init['referenceNumber'], $authToken);
 
-        $tokens = $this->check('pobranie tokenów', $this->http()->withToken($authToken)->post('/auth/token/redeem'))->json();
+        $tokens = $this->send('pobranie tokenów', fn () => $this->http()->withToken($authToken)->post('/auth/token/redeem'))->json();
 
         return [$tokens['accessToken']['token'], $tokens['accessToken']['validUntil']];
     }
@@ -95,31 +95,27 @@ class KsefClient
             'sortOrder' => 'Asc',
         ]);
 
-        $response = $this->authorized()->post('/invoices/query/metadata?'.$query, [
+        return $this->send('wyszukiwanie faktur', fn () => $this->authorized()->post('/invoices/query/metadata?'.$query, [
             'subjectType' => $subjectType,
             'dateRange' => [
                 'dateType' => 'Issue',
                 'from' => $from->startOfDay()->toIso8601String(),
                 'to' => $to->endOfDay()->toIso8601String(),
             ],
-        ]);
-
-        return $this->check('wyszukiwanie faktur', $response)->json();
+        ]))->json();
     }
 
     public function downloadInvoice(string $ksefNumber): string
     {
-        $response = $this->authorized()
+        return $this->send("pobranie faktury {$ksefNumber}", fn () => $this->authorized()
             ->accept('application/xml')
-            ->get('/invoices/ksef/'.rawurlencode($ksefNumber));
-
-        return $this->check("pobranie faktury {$ksefNumber}", $response)->body();
+            ->get('/invoices/ksef/'.rawurlencode($ksefNumber)))->body();
     }
 
     private function waitForAuthentication(string $referenceNumber, string $authToken): void
     {
         for ($i = 0; $i < config('ksef.auth_poll_attempts'); $i++) {
-            $status = $this->check('status uwierzytelnienia', $this->http()->withToken($authToken)->get('/auth/'.$referenceNumber))->json('status');
+            $status = $this->send('status uwierzytelnienia', fn () => $this->http()->withToken($authToken)->get('/auth/'.$referenceNumber))->json('status');
 
             if ((int) $status['code'] === 200) {
                 return;
@@ -138,7 +134,7 @@ class KsefClient
     /** Szyfruje RSA-OAEP (SHA-256, MGF1) kluczem publicznym MF przeznaczonym do szyfrowania tokenów. */
     private function encryptToken(string $plain): string
     {
-        $certificates = $this->check('pobranie kluczy publicznych', $this->http()->get('/security/public-key-certificates'))->json();
+        $certificates = $this->send('pobranie kluczy publicznych', fn () => $this->http()->get('/security/public-key-certificates'))->json();
 
         $certificate = collect($certificates)
             ->filter(fn (array $c) => in_array('KsefTokenEncryption', $c['usage'] ?? [], true))
@@ -161,13 +157,58 @@ class KsefClient
             ->withOptions(config('ksef.ca_bundle') ? ['verify' => config('ksef.ca_bundle')] : [])
             ->acceptJson()
             ->asJson()
-            ->timeout(config('ksef.timeout'))
-            ->retry(2, 2000, fn ($e, $request) => $e instanceof RequestException && $e->response->status() === 429, throw: false);
+            ->timeout(config('ksef.timeout'));
     }
 
     private function authorized(): PendingRequest
     {
         return $this->http()->withToken($this->accessToken());
+    }
+
+    /**
+     * Wysyła zapytanie, a po HTTP 429 czeka tyle, ile każe nagłówek Retry-After, i ponawia.
+     * Gdy łączne czekanie przekroczyłoby limit z konfiguracji, rzuca KsefRateLimitException.
+     *
+     * @param  \Closure(): Response  $request
+     */
+    private function send(string $operation, \Closure $request): Response
+    {
+        $waited = 0;
+
+        for ($attempt = 1; ; $attempt++) {
+            $response = $request();
+
+            if ($response->status() !== 429) {
+                return $this->check($operation, $response);
+            }
+
+            $delay = $this->retryAfter($response, $attempt);
+
+            if ($attempt > config('ksef.rate_limit_retries') || $waited + $delay > config('ksef.rate_limit_max_wait')) {
+                throw new KsefRateLimitException(
+                    "KSeF: {$operation} – przekroczono limit zapytań (HTTP 429), kolejna próba możliwa za {$delay} s.",
+                    $delay,
+                );
+            }
+
+            Sleep::for($delay)->seconds();
+            $waited += $delay;
+        }
+    }
+
+    /** Liczba sekund z nagłówka Retry-After (sekundy albo data HTTP); bez nagłówka – narastające opóźnienie. */
+    private function retryAfter(Response $response, int $attempt): int
+    {
+        $header = trim($response->header('Retry-After'));
+
+        if (ctype_digit($header)) {
+            return max(1, (int) $header);
+        }
+        if ($header !== '' && ($time = strtotime($header)) !== false) {
+            return max(1, $time - time());
+        }
+
+        return min(60, 5 * 2 ** ($attempt - 1));
     }
 
     private function check(string $operation, Response $response): Response

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\HealthMinimums;
 
 use App\Filament\Resources\HealthMinimums\Pages\ManageHealthMinimums;
+use App\Filament\Support\MoneyInput;
 use App\Models\HealthMinimum;
 use App\Models\TaxParameter;
 use App\Support\Money;
@@ -46,9 +47,8 @@ class HealthMinimumResource extends Resource
                     ->rules(['regex:/^\d{4}-(0[1-9]|1[0-2])$/'])
                     ->unique(ignoreRecord: true)
                     ->required(),
-                TextInput::make('base')
+                MoneyInput::make('base')
                     ->label('Minimalna podstawa')
-                    ->numeric()
                     ->suffix('zł')
                     ->helperText('Np. minimalne wynagrodzenie albo jego 75%. Składka minimalna = podstawa × stawka zdrowotnej.')
                     ->required(),
@@ -72,7 +72,7 @@ class HealthMinimumResource extends Resource
 
                         return $next ? ucfirst(Period::label(Period::previous($next))) : 'bezterminowo';
                     }),
-                TextColumn::make('base')->label('Podstawa')->money('PLN'),
+                TextColumn::make('base')->label('Podstawa')->money('PLN')->alignEnd(),
                 TextColumn::make('minimum')
                     ->label('Składka minimalna')
                     ->state(function (HealthMinimum $record) {

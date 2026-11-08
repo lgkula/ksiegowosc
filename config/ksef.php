@@ -17,4 +17,9 @@ return [
     'auth_poll_attempts' => (int) env('KSEF_AUTH_POLL_ATTEMPTS', 15),
 
     'page_size' => 100,
+
+    // Limity API (HTTP 429): ile razy ponowić zapytanie i ile łącznie sekund czekać (wg nagłówka Retry-After).
+    // Przy dłuższej blokadzie (np. limit godzinowy) pobieranie jest przerywane – resztę pobierze kolejne uruchomienie.
+    'rate_limit_retries' => (int) env('KSEF_RATE_LIMIT_RETRIES', 5),
+    'rate_limit_max_wait' => (int) env('KSEF_RATE_LIMIT_MAX_WAIT', 180),
 ];

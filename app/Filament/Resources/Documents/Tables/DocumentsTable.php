@@ -11,12 +11,12 @@ use App\Services\Categorizer;
 use App\Services\DocumentProcessor;
 use App\Support\Money;
 use App\Support\Period;
-use Filament\Forms\Components\TextInput;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -51,11 +51,12 @@ class DocumentsTable
                     ->color(fn (string $state) => $state === 'bez kategorii' ? 'danger' : 'gray'),
                 TextColumn::make('direction')->label('Rodzaj')->badge()->color(fn (Direction $state) => $state === Direction::Revenue ? 'success' : 'info'),
                 TextColumn::make('source')->label('Źródło')->badge()->color('gray')->toggleable(),
-                TextColumn::make('net')->label('Netto')->money('PLN')->sortable()->summarize(Sum::make()->label('')->money('PLN')),
-                TextColumn::make('vat')->label('VAT')->money('PLN')->summarize(Sum::make()->label('')->money('PLN')),
+                TextColumn::make('net')->label('Netto')->money('PLN')->alignEnd()->sortable()->summarize(Sum::make()->label('')->money('PLN')),
+                TextColumn::make('vat')->label('VAT')->money('PLN')->alignEnd()->summarize(Sum::make()->label('')->money('PLN')),
                 TextColumn::make('gross')
                     ->label('Brutto')
                     ->money('PLN')
+                    ->alignEnd()
                     ->description(fn (Document $record) => $record->isForeignCurrency()
                         ? Money::format($record->gross_currency, symbol: $record->currency).' × '.Money::input($record->exchange_rate, 4)
                         : null)

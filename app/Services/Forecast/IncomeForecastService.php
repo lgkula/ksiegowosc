@@ -222,7 +222,7 @@ class IncomeForecastService
 
     private function isKrukInvoiced(array $kruk): bool
     {
-        return $kruk['base'] + $kruk['additions'] > (float) config('forecast.kruk.invoiced_threshold', 5000);
+        return (float) config('forecast.kruk.invoiced_threshold', 5000) < $kruk['base'] + $kruk['additions'];
     }
 
     /** Podstawa z poprzedniego miesiąca: z faktury, a gdy jej brak - z modelu zapisanego dla tego miesiąca. */

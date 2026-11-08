@@ -5,11 +5,14 @@ use App\Models\Document;
 use App\Models\KsefSyncLog;
 use App\Models\Setting;
 use App\Services\Ksef\FaXmlParser;
+use App\Services\Ksef\KsefClient;
 use App\Services\Ksef\KsefImporter;
 use Carbon\CarbonImmutable;
 use Database\Seeders\CategorySeeder;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 use phpseclib3\Crypt\RSA;
 use phpseclib3\File\X509;
 
@@ -113,6 +116,46 @@ it('zapisuje błąd w logu, gdy KSeF odrzuci uwierzytelnienie', function () {
 
     expect($result['errors'][0])->toContain('Nieprawidłowe żądanie')
         ->and(KsefSyncLog::first()->status)->toBe('error');
+});
+
+/** Importer z klientem KSeF, który ma już access token w pamięci podręcznej (bez uwierzytelniania). */
+function importerWithToken(): KsefImporter
+{
+    $base = 'https://api-test.ksef.mf.gov.pl/v2';
+    Cache::put('ksef_access_token:'.md5($base.'8990001122'.'TOKEN'), 'ACCESS-JWT', 600);
+
+    return app(KsefImporter::class, ['client' => new KsefClient($base, '8990001122', 'TOKEN')]);
+}
+
+it('po HTTP 429 czeka zgodnie z Retry-After i ponawia pobranie faktury', function () {
+    Sleep::fake();
+    Http::fake([
+        '*/invoices/query/metadata*' => Http::response(['hasMore' => false, 'isTruncated' => false, 'invoices' => [['ksefNumber' => 'KSEF-1']]]),
+        '*/invoices/ksef/KSEF-1' => Http::sequence()
+            ->push(['status' => 429], 429, ['Retry-After' => '7'])
+            ->push($this->xml, 200, ['Content-Type' => 'application/xml']),
+    ]);
+
+    $result = importerWithToken()->import(CarbonImmutable::parse('2026-11-01'), CarbonImmutable::parse('2026-11-30'));
+
+    expect($result)->toBe(['found' => 1, 'imported' => 1, 'errors' => []]);
+    Sleep::assertSequence([Sleep::for(7)->seconds()]);
+});
+
+it('przerywa pobieranie jednym komunikatem, gdy limit KSeF blokuje na dłużej', function () {
+    Sleep::fake();
+    Http::fake([
+        '*/invoices/query/metadata*' => Http::response(['hasMore' => false, 'isTruncated' => false, 'invoices' => [['ksefNumber' => 'KSEF-1'], ['ksefNumber' => 'KSEF-2']]]),
+        '*/invoices/ksef/*' => Http::response(['status' => 429], 429, ['Retry-After' => '1800']),
+    ]);
+
+    $result = importerWithToken()->import(CarbonImmutable::parse('2026-11-01'), CarbonImmutable::parse('2026-11-30'));
+
+    expect($result['imported'])->toBe(0)
+        ->and($result['errors'])->toHaveCount(1)
+        ->and($result['errors'][0])->toContain('za ok. 30 min');
+    Http::assertSentCount(2);
+    Sleep::assertNeverSlept();
 });
 
 /** Samopodpisany certyfikat X.509 (base64 DER) dla klucza testowego. */

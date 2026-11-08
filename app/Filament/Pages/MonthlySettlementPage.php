@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Support\MoneyInput;
 use App\Models\MonthlySettlement;
 use App\Services\Settlement\SettlementService;
 use App\Support\Period;
@@ -71,10 +72,10 @@ class MonthlySettlementPage extends Page
                 ->disabled($settlement->isClosed())
                 ->fillForm(fn () => MonthlySettlement::forPeriod($this->period)->only(['other_income', 'other_income_note', 'account_balance', 'extra_reserve', 'notes']))
                 ->schema([
-                    TextInput::make('other_income')->label('Inne przychody')->numeric()->suffix('zł')->default(0),
+                    MoneyInput::make('other_income')->label('Inne przychody')->suffix('zł')->default(0),
                     TextInput::make('other_income_note')->label('Opis innych przychodów'),
-                    TextInput::make('account_balance')->label('Saldo konta firmowego')->numeric()->suffix('zł')->helperText('Stan konta w dniu rozliczenia.'),
-                    TextInput::make('extra_reserve')->label('Dodatkowa rezerwa na koncie')->numeric()->suffix('zł')->default(0),
+                    MoneyInput::make('account_balance')->label('Saldo konta firmowego')->suffix('zł')->helperText('Stan konta w dniu rozliczenia.'),
+                    MoneyInput::make('extra_reserve')->label('Dodatkowa rezerwa na koncie')->suffix('zł')->default(0),
                     Textarea::make('notes')->label('Notatki')->rows(2),
                 ])
                 ->action(function (array $data) {
@@ -82,7 +83,7 @@ class MonthlySettlementPage extends Page
                     $settlement->fill([
                         'other_income' => $data['other_income'] ?: 0,
                         'other_income_note' => $data['other_income_note'],
-                        'account_balance' => $data['account_balance'] === '' ? null : $data['account_balance'],
+                        'account_balance' => $data['account_balance'],
                         'extra_reserve' => $data['extra_reserve'] ?: 0,
                         'notes' => $data['notes'],
                     ])->save();

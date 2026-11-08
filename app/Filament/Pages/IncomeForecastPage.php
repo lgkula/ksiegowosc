@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Support\MoneyInput;
 use App\Services\Forecast\IncomeForecastService;
 use App\Support\Period;
 use App\Support\VatRates;
@@ -19,7 +20,6 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Filament\Support\RawJs;
 use Livewire\Attributes\Url;
 use UnitEnum;
 
@@ -61,10 +61,8 @@ class IncomeForecastPage extends Page
     public function form(Schema $schema): Schema
     {
         // Kwoty z odstępem tysięcy i przecinkiem dziesiętnym, np. 20 000,00; serwis zamienia je na liczby.
-        $money = fn (string $name, string $label) => TextInput::make($name)
+        $money = fn (string $name, string $label) => MoneyInput::make($name)
             ->label($label)
-            ->mask(RawJs::make("\$money(\$input, ',', ' ', 2)"))
-            ->inputMode('decimal')
             ->suffix('zł')
             ->live(onBlur: true);
 

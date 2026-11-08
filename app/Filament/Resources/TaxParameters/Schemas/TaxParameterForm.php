@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\TaxParameters\Schemas;
 
+use App\Filament\Support\MoneyInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
@@ -12,7 +13,7 @@ class TaxParameterForm
     public static function configure(Schema $schema): Schema
     {
         $percent = fn (string $name, string $label) => TextInput::make($name)->label($label)->numeric()->suffix('%')->required();
-        $money = fn (string $name, string $label) => TextInput::make($name)->label($label)->numeric()->suffix('zł')->required();
+        $money = fn (string $name, string $label) => MoneyInput::make($name)->label($label)->suffix('zł')->required();
 
         return $schema
             ->components([
